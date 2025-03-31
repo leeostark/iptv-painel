@@ -1,7 +1,7 @@
 
 const express = require('express');
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT;
 
 const users = [
     { username: "admin", password: "1234", validUntil: "2025-12-31" },
