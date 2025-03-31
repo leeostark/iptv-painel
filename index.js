@@ -1,37 +1,52 @@
+// painel IPTV com múltiplos usuários e validade - Node.js + Express
 
 const express = require('express');
 const app = express();
 const PORT = process.env.PORT;
-
-const users = [
-    { username: "admin", password: "1234", validUntil: "2025-12-31" },
-];
+const fs = require('fs');
 
 app.use(express.urlencoded({ extended: true }));
 
+// carregar usuários do arquivo JSON
+function loadUsers() {
+  try {
+    const data = fs.readFileSync('users.json');
+    return JSON.parse(data);
+  } catch (err) {
+    return [];
+  }
+}
+
 app.get("/", (req, res) => {
-    res.send(`<form method="POST" action="/login">
-        <input name="username" placeholder="Usuário" />
-        <input name="password" type="password" placeholder="Senha" />
-        <button type="submit">Entrar</button>
-    </form>`);
+  res.send(`<form method="POST" action="/login">
+      <input name="username" placeholder="Usuário" />
+      <input name="password" type="password" placeholder="Senha" />
+      <button type="submit">Entrar</button>
+  </form>`);
 });
 
 app.post("/login", (req, res) => {
-    const { username, password } = req.body;
-    const user = users.find(u => u.username === username && u.password === password);
-    if (user) {
-        const today = new Date().toISOString().split("T")[0];
-        if (today <= user.validUntil) {
-            return res.send(`Login OK<br><a href="/lista.m3u8">Abrir Lista</a>`);
-        } else {
-            return res.send("Sua conta expirou.");
-        }
-    }
-    res.send("Usuário ou senha inválidos.");
+  const users = loadUsers();
+  const { username, password } = req.body;
+  const user = users.find(u => u.username === username && u.password === password);
+
+  if (!user) return res.send("Usuário ou senha inválidos.");
+
+  const today = new Date().toISOString().split("T")[0];
+  if (today > user.validUntil) return res.send("Sua conta expirou.");
+
+  res.send(`Login OK! <br><a href="/lista/${user.username}.m3u8">Abrir Lista IPTV</a>`);
 });
 
-app.get("/lista.m3u8", (req, res) => {
+// rota para entregar a lista .m3u8 personalizada
+app.get("/lista/:user.m3u8", (req, res) => {
+  const users = loadUsers();
+  const user = users.find(u => u.username === req.params.user);
+
+  if (!user) return res.status(403).send("Usuário não encontrado");
+  const today = new Date().toISOString().split("T")[0];
+  if (today > user.validUntil) return res.status(403).send("Conta expirada");
+
   res.set("Content-Type", "application/x-mpegURL");
   res.send(`#EXTM3U
 #EXTINF:-1,ESPN 4
@@ -139,10 +154,9 @@ https://embedcanaisdetv.site/discoveryturbo/video.m3u8
 #EXTINF:-1,History
 https://embedcanaisdetv.site/history/video.m3u8
 #EXTINF:-1,History 2
-https://embedcanaisdetv.site/history2/video.m3u8
-`);
+https://embedcanaisdetv.site/history2/video.m3u8`);
 });
 
 app.listen(PORT, () => {
-    console.log("Painel IPTV rodando na porta " + PORT);
+  console.log("Painel IPTV rodando na porta " + PORT);
 });
