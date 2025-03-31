@@ -1,13 +1,10 @@
-// painel IPTV com múltiplos usuários e validade - Node.js + Express
-
 const express = require('express');
 const app = express();
-const PORT = process.env.PORT;
 const fs = require('fs');
+const PORT = process.env.PORT;
 
 app.use(express.urlencoded({ extended: true }));
 
-// carregar usuários do arquivo JSON
 function loadUsers() {
   try {
     const data = fs.readFileSync('users.json');
@@ -19,9 +16,9 @@ function loadUsers() {
 
 app.get("/", (req, res) => {
   res.send(`<form method="POST" action="/login">
-      <input name="username" placeholder="Usuário" />
-      <input name="password" type="password" placeholder="Senha" />
-      <button type="submit">Entrar</button>
+    <input name="username" placeholder="Usuário" />
+    <input name="password" type="password" placeholder="Senha" />
+    <button type="submit">Entrar</button>
   </form>`);
 });
 
@@ -38,7 +35,6 @@ app.post("/login", (req, res) => {
   res.send(`Login OK! <br><a href="/lista/${user.username}.m3u8">Abrir Lista IPTV</a>`);
 });
 
-// rota para entregar a lista .m3u8 personalizada
 app.get("/lista/:user.m3u8", (req, res) => {
   const users = loadUsers();
   const user = users.find(u => u.username === req.params.user);
@@ -157,20 +153,17 @@ https://embedcanaisdetv.site/history/video.m3u8
 https://embedcanaisdetv.site/history2/video.m3u8`);
 });
 
-app.listen(PORT, () => {
-  console.log("Painel IPTV rodando na porta " + PORT);
-});
-// rota para Xtream Codes API - compatível com IPTV Smarters
+// compatível com IPTV Smarters API
 app.get("/get.php", (req, res) => {
   const { username, password, type } = req.query;
   const users = loadUsers();
   const user = users.find(u => u.username === username && u.password === password);
 
-  if (!user) return res.status(403).send("Usuário inválido.");
+  if (!user) return res.status(403).send("Usuário inválido");
   const today = new Date().toISOString().split("T")[0];
   if (today > user.validUntil) return res.status(403).send("Conta expirada");
 
-  if (type === "m3u") {
+  if (type === "m3u" || type === "m3u8") {
     res.set("Content-Type", "application/x-mpegURL");
     res.send(`#EXTM3U
 #EXTINF:-1,ESPN 4
@@ -255,7 +248,7 @@ https://embedcanaisdetv.site/tntnovelas/video.m3u8
 https://embedcanaisdetv.site/tntseries/video.m3u8
 #EXTINF:-1,Universal TV
 https://embedcanaisdetv.site/universaltv/video.m3u8
-#EXTINF:-1,USA Channel
+#EXTINF:-1,USA
 https://embedcanaisdetv.site/usa/video.m3u8
 #EXTINF:-1,Warner Channel
 https://embedcanaisdetv.site/warner/video.m3u8
@@ -280,6 +273,10 @@ https://embedcanaisdetv.site/history/video.m3u8
 #EXTINF:-1,History 2
 https://embedcanaisdetv.site/history2/video.m3u8`);
   } else {
-    res.status(400).send("Tipo inválido");
+    res.status(400).send("Parâmetro inválido");
   }
+});
+
+app.listen(PORT, () => {
+  console.log("Painel IPTV rodando na porta " + PORT);
 });
