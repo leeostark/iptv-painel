@@ -1,0 +1,5 @@
+[
+  { "username": "admin", "password": "1234", "validUntil": "2025-12-31" },
+  { "username": "joao", "password": "abc123", "validUntil": "2025-04-15" },
+  { "username": "maria", "password": "senha321", "validUntil": "2025-04-10" }
+]
